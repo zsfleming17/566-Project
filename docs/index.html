@@ -43,7 +43,9 @@
     <section>
       <h2>Overview</h2>
       <p>
-        This project trains a classifier to detect whether a ballpark seat has an obstructed view versus a clear view. The primary goal is a fan-centered definition of obstruction (rails, poles, netting that block the field of play), not transient occlusions like people standing. Methods include transfer learning (MobileNetV3-Small), sanity-check diagnostics (edges/Hough), and interpretability (Grad‑CAM).
+        This project trains a classifier to detect whether a ballpark seat has an obstructed view versus a clear view.
+        The primary goal is a fan-centered definition of obstruction (rails, poles, netting that block the field of play), not transient occlusions like people standing.
+        Methods include transfer learning (MobileNetV3-Small), sanity-check diagnostics (edges/Hough), and interpretability (Grad‑CAM).
       </p>
       <div class="row" style="margin-top:8px;">
         <span class="chip">Binary classification</span>
@@ -66,7 +68,9 @@
     <section id="proposal">
       <h2>Proposal</h2>
       <p>
-        Problem: detect obstructed seats from photos. Motivation: improve ticket transparency and fan experience. Plan: collect 200–300 initial images, build a baseline with transfer learning, then expand to 400–600 and evaluate cross‑stadium generalization. Timeline detailed below.
+        Problem: detect obstructed seats from photos.
+        Motivation: improve ticket transparency and fan experience.
+        Plan: collect 200–300 initial images, build a baseline with transfer learning, then expand to 400–600 and evaluate cross‑stadium generalization. Timeline detailed below.
       </p>
     </section>
 
@@ -101,11 +105,6 @@
           <img src="figures/confusion_loso_wrigley.png" alt="Confusion matrix: LOSO Wrigley" />
           <div class="caption">Figure: Confusion matrix for LOSO (Wrigley held‑out). Strong generalization to unseen stadium.</div>
         </div>
-      </div>
-
-      <div class="fig" style="margin-top:16px;">
-        <img src="figures/gradcam_panel.png" alt="Grad‑CAM panel" />
-        <div class="caption">Grad‑CAM overlays (optional at midterm). The model focuses on poles/netting when predicting obstructed.</div>
       </div>
 
       <h3>Challenges & Plan</h3>
