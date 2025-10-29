@@ -2,7 +2,6 @@ from pathlib import Path
 import pandas as pd
 import re
 
-# your data path
 root = Path("/Users/zsfleming/Downloads/566-Project-zfleming/data")
 
 rows = []
@@ -13,7 +12,6 @@ for label_dir in root.iterdir():
     label = label_dir.name.lower()  # 'clear' or 'obstructed'
     for p in label_dir.rglob("*"):
         if p.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}:
-            # extract prefix before first underscore, e.g., amfam_clear_026.jpg -> 'amfam'
             fname = p.name.lower()
             match = re.match(r"([a-z0-9]+)_", fname)
             stadium = match.group(1) if match else "unknown"

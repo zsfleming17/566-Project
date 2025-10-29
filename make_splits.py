@@ -12,7 +12,7 @@ df["stadium"] = df["stadium"].str.lower().str.strip()
 
 Path("splits").mkdir(exist_ok=True)
 
-# ---------- A) 70/15/15 stratified by label ----------
+# 70/15/15
 sss1 = StratifiedShuffleSplit(n_splits=1, test_size=0.30, random_state=42)
 tr_idx, tmp_idx = next(sss1.split(df, df["label"]))
 tr = df.iloc[tr_idx].reset_index(drop=True)
@@ -30,14 +30,13 @@ te.to_csv("splits/random_test.csv", index=False)
 print("Random split:", len(tr), len(va), len(te))
 print("Random train label counts:\n", tr["label"].value_counts(), "\n")
 
-# ---------- B) LOSO (Leave-One-Stadium-Out) ----------
-# Make one split per stadium, so you can pick any for the midterm.
+# LOSO
 for held_out in sorted(df["stadium"].unique()):
     if held_out in ("unknown", ""):  # skip unknowns if any
         continue
     te2 = df[df["stadium"]==held_out].reset_index(drop=True)
     tr_all = df[df["stadium"]!=held_out].reset_index(drop=True)
-    # 15% of (non-held-out) for validation (stratified by label)
+    # 15%
     sss_val = StratifiedShuffleSplit(n_splits=1, test_size=0.15, random_state=45)
     tr2_idx, va2_idx = next(sss_val.split(tr_all, tr_all["label"]))
     tr2 = tr_all.iloc[tr2_idx].reset_index(drop=True)
