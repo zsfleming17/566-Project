@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CS 566 — Obstructed Seat Detection</title>
+  <title>CS 566 – Obstructed Seat Detection</title>
   <style>
     :root { --bg:#0f172a; --card:#111827; --muted:#9ca3af; --ink:#e5e7eb; --accent:#22d3ee; }
     * { box-sizing: border-box; }
@@ -17,6 +17,7 @@
     main { max-width: 1100px; margin: 0 auto; padding: 10px 20px 60px; display:grid; gap:24px; }
     section { background: var(--card); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 20px; }
     h2 { margin: 0 0 12px; font-size: clamp(18px, 2.8vw, 26px); }
+    h3 { margin: 16px 0 8px; font-size: 18px; }
     p { line-height: 1.6; color: #e5e7eb; }
     .grid-2 { display:grid; grid-template-columns: 1fr; gap:16px; }
     .grid-3 { display:grid; grid-template-columns: 1fr; gap:16px; }
@@ -29,101 +30,216 @@
     .footer { color: var(--muted); text-align:center; font-size:14px; margin-top:24px; }
     .chip { display:inline-block; font-size:12px; color:#a3e3ff; border:1px solid rgba(34,211,238,.35); padding:2px 8px; border-radius:999px; margin-right:6px; }
     .row { display:flex; gap:10px; flex-wrap: wrap; }
-    .code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 13px; white-space: pre-wrap; background:#0b1220; border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    th { background: rgba(255,255,255,0.05); font-weight: 600; }
+    tr:hover { background: rgba(255,255,255,0.02); }
+    .highlight { background: rgba(239, 68, 68, 0.2); }
   </style>
 </head>
 <body>
   <header>
-    <div class="pill">CS 566 Project — Computer Vision</div>
+    <div class="pill">CS 566 Project – Computer Vision</div>
     <div class="title">Obstructed Seat Detection in MLB Stadiums</div>
     <div class="subtitle">Zachery Fleming · Fall 2025</div>
   </header>
 
   <main>
     <section>
-      <h2>Overview</h2>
+      <h2>Deliverables</h2>
+      <ul>
+        <li><a href="docs/proposal.pdf" target="_blank">Project Proposal</a></li>
+        <li><a href="docs/midterm_report.pdf" target="_blank">Midterm Report</a></li>
+        <li><a href="#" target="_blank">Final Presentation Video</a> TODO/li>
+        <li><a href="https://github.com/zsfleming17/566-Project" target="_blank" rel="noopener">GitHub Repository (Code)</a></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Motivation</h2>
       <p>
-        This project trains a classifier to detect whether a ballpark seat has an obstructed view versus a clear view.
-        The primary goal is a fan-centered definition of obstruction (rails, poles, netting that block the field of play), not transient occlusions like people standing.
-        Methods include transfer learning (MobileNetV3-Small), sanity-check diagnostics (edges/Hough), and interpretability (Grad‑CAM).
+        I got the idea for this project from a personal experience when going to a Brewers game. 
+        I bought tickets to a game once without realizing the seats had an obstructed view. 
+        When I showed up and saw part of the field was blocked by the foul pole, it was pretty disappointing and made me feel like I got scammed. 
+        So that gave me the idea - is there a way to automatically detect if a seat has an obstructed view just from a photo? 
+        I'm also very interested in baseball and sports in general, so this was a good way to connect this project with something i'm interested in.
       </p>
-      <div class="row" style="margin-top:8px;">
-        <span class="chip">Binary classification</span>
-        <span class="chip">Transfer learning</span>
-        <span class="chip">PyTorch</span>
-        <span class="chip">Grad‑CAM</span>
-        <span class="chip">Cross‑stadium (LOSO)</span>
+      <p>
+        There are websites like A View From My Seat that have thousands of fan uploaded seat photos from each stadium, but there's no easy way to label them all. 
+        My goal was to build a classifier that could look at a photo and tell you if the view is clear or obstructed.
+      </p>
+    </section>
+
+    <section>
+      <h2>Approach</h2>
+      <p>
+        I framed this as a binary classification problem - so given an image from the seat perspective in a MLB ballpark, my model predicts whether it's <span class="kbd">clear</span> or <span class="kbd">obstructed</span>. 
+        An obstructed view is one where something permanent (railing, pole, overhang, etc.) blocks part of the field. 
+        The model also needs to recognize temporary obstructions such as fans standing.
+      </p>
+      
+      <h3>Dataset</h3>
+      <p>
+        I manually collected and labeled images from sites like A View From My Seat and Rate Your Seats. 
+        Started with 231 images from 4 stadiums for the midterm, then expanded to <b>553 images across 8 MLB stadiums</b> for the final. 
+        I tried to keep the classes roughly balanced (297 clear, 256 obstructed) since imbalance was seemingly causing problems for the midterm.
+      </p>
+      <div class="fig" style="max-width: 600px;">
+        <img src="figures/sample_grid.png" alt="Sample images grid" />
+        <div class="caption">Some example images from the dataset. Top row: clear views. Bottom row: obstructed views.</div>
+      </div>
+
+      <h3>Model</h3>
+      <p>
+        I used <b>MobileNetV3-Small</b> with ImageNet pretrained weights and replaced the final classification layer for binary output.
+        Transfer learning made sense here since I didn't have thousands of images, and MobileNet is lightweight enough to train quickly on my laptop.
+      </p>
+      <p>
+        Training setup: 224×224 input size, data augmentation (random crops, flips, color jitter),
+        class-weighted cross-entropy loss to handle any remaining imbalance,
+        AdamW optimizer, and early stopping based on validation accuracy.
+      </p>
+
+      <h3>Evaluation Strategy</h3>
+      <p>
+        Beyond a standard random train/val/test split, I also did <b>Leave-One-Stadium-Out (LOSO)</b> cross-validation.
+        The idea is to train on 7 stadiums and test on the 8th to see if the model can generalize to a stadium it's never seen.
+      </p>
+    </section>
+
+    <section>
+      <h2>Implementation Details</h2>
+      <p>
+        A few things I ran into while building this:
+      </p>
+      <ul>
+        <li><b>Class imbalance was a big deal:</b> My first model had 83% accuracy which is still ok, but it was only predicting 57% of obstructed seats accuratly 
+          — so basically missing half of them. Adding more obstructed examples and using class weights in the loss function fixed this.</li>
+        <li><b>Image naming convention:</b> I named all images like <span class="kbd">stadium_label_number.jpg</span> (e.g., <span class="kbd">wrigley_obstructed_01.jpg</span>) 
+          which made it easy to parse the data and create the LOSO splits.</li>
+        <li><b>Grad-CAM for sanity checking:</b> I used Grad-CAM to visualize what the model was looking at. 
+          This helped confirm it was actually focusing on poles and railings rather than picking up on some random pattern that isn't an obstruction.</li>
+      </ul>
+      <p>
+        The main code is organized with separate scripts for data prep (<span class="kbd">make_master_csv.py</span>, <span class="kbd">make_splits.py</span>), training (<span class="kbd">train_baseline.py</span>), and visualization tools (<span class="kbd">gradcam.py</span>, <span class="kbd">plot_confmat.py</span>).
+      </p>
+    </section>
+
+    <section>
+      <h2>Results</h2>
+      
+      <h3>Random Split</h3>
+      <p>
+        On a 70/15/15 split, the final model hit <b>92% accuracy</b> with <b>92% recall on obstructed views</b>. 
+        That's way better than the midterm's 57% obstructed recall. I believe the dataset expansion and class balancing really helped with this.
+      </p>
+      <div class="fig" style="max-width: 450px;">
+        <img src="figures/confusion_random.png" alt="Confusion matrix: random split" />
+        <div class="caption">Confusion matrix on the random test split (n=83).</div>
+      </div>
+
+      <h3>Cross-Stadium Generalization (LOSO)</h3>
+      <p>
+        The model generalizes pretty well to most stadiums, but interestingly not all of them:
+      </p>
+      <table>
+        <tr><th>Stadium (held out)</th><th>Test Acc</th><th>Clear Recall</th><th>Obstructed Recall</th><th>n</th></tr>
+        <tr><td>Wrigley</td><td>94%</td><td>96%</td><td>92%</td><td>54</td></tr>
+        <tr><td>Tropicana</td><td>91%</td><td>100%</td><td>81%</td><td>66</td></tr>
+        <tr><td>Oracle</td><td>90%</td><td>94%</td><td>83%</td><td>72</td></tr>
+        <tr><td>AmFam</td><td>88%</td><td>75%</td><td>100%</td><td>43</td></tr>
+        <tr><td>Fenway</td><td>85%</td><td>85%</td><td>86%</td><td>62</td></tr>
+        <tr><td>Yankee</td><td>84%</td><td>100%</td><td>70%</td><td>128</td></tr>
+        <tr><td>Guaranteed Rate</td><td>79%</td><td>78%</td><td>80%</td><td>75</td></tr>
+        <tr class="highlight"><td>Target</td><td>66%</td><td>86%</td><td>42%</td><td>53</td></tr>
+      </table>
+      <p class="caption">LOSO results across all 8 stadiums. Average accuracy: 85%.</p>
+
+      <p>
+        Six out of eight stadiums are in the 79-94% range, which is pretty solid. 
+        But Target Field is a clear outlier at 66%, with only 42% obstructed recall - meaning it missed more than half the obstructed seats there.
+      </p>
+
+      <div class="grid-2">
+        <div class="fig">
+          <img src="figures/confusion_loso_wrigley.png" alt="Confusion matrix: LOSO Wrigley" />
+          <div class="caption">Wrigley (held out): Good generalization.</div>
+        </div>
+        <div class="fig">
+          <img src="figures/confusion_loso_target.png" alt="Confusion matrix: LOSO Target" />
+          <div class="caption">Target (held out): Struggled badly — missed 14 of 24 obstructed seats.</div>
+        </div>
+      </div>
+
+      <h3>Why Target Field Failed</h3>
+      <p>
+        I wanted to view what images were misclassifed to see if I could spot what was going on. 
+        It seems that most of the obstructed views at Target have railings at the edge of the frame that block the warning track or outfield corners, 
+        while the infield is still fully visible. The model learned to look for obstructions blocking the diamond itself (like a pole in front of home plate), so it struggles with these edge cases. 
+      </p>
+      <p>
+        This makes sense in retrospect because most of the training examples probably had more obvious central obstructions. 
+        The model learned a narrower definition of "obstructed" than I intended.
+      </p>
+
+      <h3>Grad-CAM Visualizations</h3>
+      <p>
+        Grad-CAM heatmaps some-what confirms that the model is looking at the right things (poles, railings) for obstructed predictions:
+      </p>
+      <div class="fig">
+        <img src="figures/gradcam_obstructed.png" alt="Grad-CAM obstructed examples" />
+        <div class="caption">Obstructed examples: Model focuses on poles and railings.</div>
+      </div>
+      <div class="fig" style="margin-top: 16px;">
+        <img src="figures/gradcam_clear.png" alt="Grad-CAM clear examples" />
+        <div class="caption">Clear examples: Attention is more spread out across the field and stands.</div>
       </div>
     </section>
 
     <section>
-      <h2>Links</h2>
+      <h2>Discussion</h2>
+      
+      <h3>What Worked</h3>
       <ul>
-        <li><a href="https://github.com/zsfleming17/566-Project" target="_blank" rel="noopener">GitHub Repository</a></li>
-        <li><a href="#midterm">Midterm Report (Oct 30)</a></li>
-        <li><a href="#proposal">Proposal (Sep 30)</a></li>
+        <li>Transfer learning with MobileNetV3 worked well for this dataset size</li>
+        <li>Balancing the dataset dramatically improved obstructed recall (57% -> 92%)</li>
+        <li>LOSO testing gave real insight into generalization. I wouldn't have caught the Target issue otherwise</li>
+        <li>Grad-CAM was useful for both debugging and explaining what the model learned</li>
       </ul>
-    </section>
 
-    <section id="proposal">
-      <h2>Proposal</h2>
+      <h3>Problems Encountered</h3>
+      <ul>
+        <li><b>Data collection was somewhat tedious:</b> Manually downloading and labeling 500+ images took a while. 
+          Some images were borderline cases where it wasn't obvious if the view was "obstructed enough". Moreover, it was hard to find obstructed seat views
+          compared to clear views, so balancing was somewhat difficult.</li>
+        <li><b>Edge-case obstructions:</b> The Target Field failure showed that the model's concept of obstruction was a bit narrower than mine. 
+          It learned "pole blocking the pitching mound" but not "railing blocking the warning track".</li>
+        <li><b>Dataset size limits:</b> With ~550 images split across 8 stadiums, some stadiums only had 40-50 images. More data would probably help, especially for the harder cases.</li>
+      </ul>
+
+      <h3>What I'd Do Differently</h3>
+      <ul>
+        <li>Collect more examples of edge case obstructions specifically</li>
+        <li>Maybe add a third class or use finer labels like "partial obstruction" vs "major obstruction"</li>
+      </ul>
+
+      <h3>Future Work</h3>
       <p>
-        Problem: detect obstructed seats from photos.
-        Motivation: improve ticket transparency and fan experience.
-        Plan: collect 200–300 initial images, build a baseline with transfer learning, then expand to 400–600 and evaluate cross‑stadium generalization. Timeline detailed below.
+        If I were to keep working on this, the obvious next step would be to continue to train the model on obstructions to handle the edge cases better. 
+        I'd also want to expand to more stadiums and test on other sports venues (basketball, football, etc.) to see how well the approach transfers. 
       </p>
-    </section>
-
-    <section id="midterm">
-      <h2>Midterm Progress & Results</h2>
-      <div class="grid-2">
-        <div>
-          <h3>Dataset</h3>
-          <p>231 photos from four MLB stadiums (AmFam, Wrigley, Oracle, Fenway). Labels: <span class="kbd">clear</span> vs <span class="kbd">obstructed</span>. Splits: stratified 70/15/15 and Leave‑One‑Stadium‑Out (LOSO).</p>
-          <div class="fig">
-            <img src="figures/sample_grid.png" alt="Sample images grid" />
-            <div class="caption">Sample images (top: clear, bottom: obstructed).</div>
-          </div>
-        </div>
-        <div>
-          <h3>Model</h3>
-          <p>MobileNetV3‑Small (ImageNet weights), 224×224 inputs, light augmentations, class‑weighted CE loss, AdamW. Early stopping based on validation accuracy.</p>
-          <ul>
-            <li><b>Random split (test, n=35):</b> 83% accuracy; clear R=1.00; obstructed R=0.57.</li>
-            <li><b>LOSO – Wrigley (test, n=54):</b> 93% accuracy; clear R=1.00; obstructed R=0.85.</li>
-          </ul>
-          <p class="caption">Performance varies by stadium; LOSO demonstrates cross‑domain generalization.</p>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div class="fig">
-          <img src="figures/confusion_random.png" alt="Confusion matrix: random split" />
-          <div class="caption">Figure: Confusion matrix on random split. Model rarely mislabels clear seats but misses some obstructed ones.</div>
-        </div>
-        <div class="fig">
-          <img src="figures/confusion_loso_wrigley.png" alt="Confusion matrix: LOSO Wrigley" />
-          <div class="caption">Figure: Confusion matrix for LOSO (Wrigley held‑out). Strong generalization to unseen stadium.</div>
-        </div>
-      </div>
-
-      <h3>Challenges & Plan</h3>
-      <ul>
-        <li>Ambiguity: people standing vs stadium obstructions; partial occlusions that don’t block the field of play.</li>
-        <li>Next: expand to 400–600 photos; refine labels with <span class="kbd">obstruction_type</span> and <span class="kbd">blocks_field</span> metadata; evaluate all LOSO folds; add stronger augmentations and Grad‑CAM analysis.</li>
-      </ul>
     </section>
 
     <section>
       <h2>Timeline</h2>
       <ul>
-        <li><b>Sep 30:</b> Proposal submitted.</li>
-        <li><b>Oct 10:</b> Webpage created (this page) with proposal.</li>
-        <li><b>Oct 30:</b> Midterm report with first results.</li>
-        <li><b>Nov 20:</b> Expand dataset to 400–600; retrain; add Grad‑CAM.</li>
-        <li><b>Nov 25:</b> Cross‑stadium generalization tests; analyze confidence.</li>
-        <li><b>Nov 30:</b> Finalize webpage (approach, results, repo link).</li>
-        <li><b>Dec 11:</b> Final presentation + complete project page.</li>
+        <li><b>Sep 30:</b> Proposal submitted</li>
+        <li><b>Oct 10:</b> Created webpage</li>
+        <li><b>Oct 30:</b> Midterm report — 231 images, 4 stadiums, 83% acc / 57% obstructed recall</li>
+        <li><b>Nov 20:</b> Expanded to 553 images, 8 stadiums, retrained</li>
+        <li><b>Nov 25:</b> LOSO testing, found Target Field issue</li>
+        <li><b>Dec 1:</b> Added Grad-CAM, finalized webpage</li>
+        <li><b>Dec 4:</b> Final presentation</li>
       </ul>
     </section>
 
