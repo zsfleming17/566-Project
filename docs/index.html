@@ -184,7 +184,9 @@
 
       <h3>Grad-CAM Visualizations</h3>
       <p>
-        Grad-CAM heatmaps some-what confirms that the model is looking at the right things (poles, railings) for obstructed predictions:
+        Grad-CAM heatmaps some-what confirms that the model is looking at the right things (poles, railings) for obstructed predictions, 
+        however also confirms that the model misses the less obvious obstructions such as the railing in the top left image for the obstruction figure ("BE ALERT FOR BATS AND/OR BALLS"). 
+        For the clear label Grad-CAM, you can see that it misses the first image, which shows that it might still label people as obstructions. 
       </p>
       <div class="fig">
         <img src="figures/gradcam_obstructed.png" alt="Grad-CAM obstructed examples" />
@@ -235,7 +237,7 @@
       <ul>
         <li><b>Sep 30:</b> Proposal submitted</li>
         <li><b>Oct 10:</b> Created webpage</li>
-        <li><b>Oct 30:</b> Midterm report — 231 images, 4 stadiums, 83% acc / 57% obstructed recall</li>
+        <li><b>Oct 30:</b> Midterm report - 231 images, 4 stadiums, 83% acc / 57% obstructed recall</li>
         <li><b>Nov 20:</b> Expanded to 553 images, 8 stadiums, retrained</li>
         <li><b>Nov 25:</b> LOSO testing, found Target Field issue</li>
         <li><b>Dec 1:</b> Added Grad-CAM, finalized webpage</li>
