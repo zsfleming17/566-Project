@@ -1,4 +1,4 @@
-# tools/plot_confmat.py
+# plot_confmat.py - generate confusion matrices for all models
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -24,7 +24,7 @@ def predict_all(csv_path, ckpt):
             ys.extend(y.numpy()); ps.extend(p)
     return np.array(ys), np.array(ps)
 
-# Generate all confusion matrices
+# all test sets and their corresponding models
 configs = [
     ("splits/random_test.csv", "best_random.pt", "figures/confusion_random.png"),
     ("splits/loso_wrigley/test.csv", "best_loso_wrigley.pt", "figures/confusion_loso_wrigley.png"),

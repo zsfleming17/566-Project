@@ -1,4 +1,4 @@
-# tools/view_misclassified.py
+# view_misclassified.py - find which images the model got wrong
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -6,9 +6,8 @@ import pandas as pd, torch
 from train_baseline import CSVImageDataset, eval_tf, make_model
 from torch.utils.data import DataLoader
 
-# --- CONFIG: choose which split and model ---
-CSV_PATH = "splits/loso_target/test.csv"       # or "splits/loso_wrigley/test.csv"
-CKPT = "best_loso_target.pt"                   # or "best_loso_wrigley.pt"
+CSV_PATH = "splits/loso_target/test.csv"
+CKPT = "best_loso_target.pt"
 
 ds = CSVImageDataset(CSV_PATH, eval_tf)
 dl = DataLoader(ds, batch_size=1, shuffle=False)
@@ -34,6 +33,5 @@ print(f"Total misclassified: {len(results)}")
 for p, t, pr in results:
     print(f"TRUE={t:12s}  PRED={pr:12s}  FILE={p}")
 
-# Optional: save to CSV
 pd.DataFrame(results, columns=["path","true","pred"]).to_csv("misclassified.csv", index=False)
 print("Saved misclassified.csv")

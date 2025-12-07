@@ -1,4 +1,3 @@
-# gradcam.py
 # Generates Grad-CAM heatmaps showing what the model focuses on
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,7 +11,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import pandas as pd
 
-# Import from your training script
+# Import from training script
 from train_baseline import make_model, MEAN, STD
 
 class GradCAM:
@@ -22,7 +21,7 @@ class GradCAM:
         self.gradients = None
         self.activations = None
         
-        # Register hooks
+        # hooks
         target_layer.register_forward_hook(self.save_activation)
         target_layer.register_full_backward_hook(self.save_gradient)
     
@@ -39,19 +38,18 @@ class GradCAM:
         if class_idx is None:
             class_idx = output.argmax(dim=1).item()
         
+        # backprop from predicted class
         self.model.zero_grad()
         one_hot = torch.zeros_like(output)
         one_hot[0, class_idx] = 1
         output.backward(gradient=one_hot)
         
-        # Global average pooling of gradients
+        # weight activation maps by gradient importance
         weights = self.gradients.mean(dim=(2, 3), keepdim=True)
-        
-        # Weighted combination of activation maps
         cam = (weights * self.activations).sum(dim=1, keepdim=True)
         cam = F.relu(cam)
-        
-        # Normalize
+
+        # normalize
         cam = cam - cam.min()
         cam = cam / (cam.max() + 1e-8)
         
@@ -71,7 +69,7 @@ def load_and_preprocess(image_path, size=224):
     ])
     tensor = transform(img).unsqueeze(0)
     
-    # Also get the cropped version for display
+    # non-normalized version for display
     display_transform = transforms.Compose([
         transforms.Resize(256),
         transforms.CenterCrop(size),
@@ -82,33 +80,20 @@ def load_and_preprocess(image_path, size=224):
 
 
 def overlay_cam(img, cam, alpha=0.5):
-    """Overlay CAM heatmap on image."""
-    # Resize CAM to image size
     cam_resized = np.array(Image.fromarray((cam * 255).astype(np.uint8)).resize(img.size, Image.BILINEAR)) / 255.0
-    
-    # Create heatmap
     heatmap = plt.cm.jet(cam_resized)[:, :, :3]
-    
-    # Blend
     img_array = np.array(img) / 255.0
     blended = (1 - alpha) * img_array + alpha * heatmap
-    
     return (blended * 255).astype(np.uint8)
 
-
 def generate_gradcam_panel(image_paths, model_path, output_path, labels=None):
-    """Generate a panel of Grad-CAM visualizations."""
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    
-    # Load model
+
     model = make_model().to(device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.eval()
-    
-    # Get the last conv layer of MobileNetV3-Small
-    # It's in model.features[-1] (the last block)
-    target_layer = model.features[-1]
-    
+
+    target_layer = model.features[-1] # last conv layer
     gradcam = GradCAM(model, target_layer)
     cls_names = {0: "clear", 1: "obstructed"}
     
@@ -125,13 +110,11 @@ def generate_gradcam_panel(image_paths, model_path, output_path, labels=None):
         cam, pred_idx, confidence = gradcam.generate(tensor)
         overlay = overlay_cam(display_img, cam)
         
-        # Original image
         axes[0, i].imshow(display_img)
         axes[0, i].axis("off")
         if labels:
             axes[0, i].set_title(f"True: {labels[i]}", fontsize=10)
         
-        # Grad-CAM overlay
         axes[1, i].imshow(overlay)
         axes[1, i].axis("off")
         axes[1, i].set_title(f"Pred: {cls_names[pred_idx]} ({confidence:.0%})", fontsize=10)
@@ -144,7 +127,6 @@ def generate_gradcam_panel(image_paths, model_path, output_path, labels=None):
 
 
 def generate_single_gradcam(image_path, model_path, output_path):
-    """Generate Grad-CAM for a single image."""
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
     model = make_model().to(device)
@@ -179,15 +161,11 @@ def generate_single_gradcam(image_path, model_path, output_path):
 
 
 if __name__ == "__main__":
-    # --- CONFIG ---
-    # Option 1: Generate panel from test set samples
-    # Grab a few clear and obstructed examples from random test set
-    
     df = pd.read_csv("splits/random_test.csv")
     clear_samples = df[df["label"] == "clear"].head(3)["path"].tolist()
     obst_samples = df[df["label"] == "obstructed"].head(3)["path"].tolist()
     
-    # Panel of clear examples
+    # clear panel
     generate_gradcam_panel(
         clear_samples,
         "best_random.pt",
@@ -195,7 +173,7 @@ if __name__ == "__main__":
         labels=["clear"] * 3
     )
     
-    # Panel of obstructed examples
+    # obstructed panel
     generate_gradcam_panel(
         obst_samples,
         "best_random.pt",
@@ -203,7 +181,7 @@ if __name__ == "__main__":
         labels=["obstructed"] * 3
     )
     
-    # Option 2: Mixed panel (3 clear + 3 obstructed)
+    # mixed panel
     all_samples = clear_samples + obst_samples
     all_labels = ["clear"] * 3 + ["obstructed"] * 3
     generate_gradcam_panel(
